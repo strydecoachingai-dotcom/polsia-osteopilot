@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rejoignez la bêta payante</title>
+  <link rel="stylesheet" href="/css/theme.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="brand">◆ EarlyLab</div>
+    <a class="nav-cta" href="#pricing">Rejoindre la bêta</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="badge">Accès bêta — places limitées</span>
+      <h1>Prenez de l'avance. Réservez votre place dans la bêta payante.</h1>
+      <p class="lede">
+        Nous ouvrons un nombre limité d'accès early-adopter. Un tarif réduit,
+        un accès prioritaire, et une influence directe sur la roadmap.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#pricing">Voir l'offre bêta</a>
+        <a class="btn btn-ghost" href="#why">Pourquoi payer maintenant&nbsp;?</a>
+      </div>
+      <p class="reassure">Sans engagement · Annulable à tout moment · Remboursé si nous ne lançons pas</p>
+    </section>
+
+    <section id="why" class="features">
+      <div class="feature">
+        <h3>Tarif early-adopter à vie</h3>
+        <p>Le prix bêta reste bloqué tant que votre abonnement est actif, même après le lancement public.</p>
+      </div>
+      <div class="feature">
+        <h3>Accès prioritaire</h3>
+        <p>Vous entrez avant tout le monde et bénéficiez d'un support direct avec l'équipe fondatrice.</p>
+      </div>
+      <div class="feature">
+        <h3>Vous façonnez le produit</h3>
+        <p>Vos retours orientent nos priorités. La bêta payante finance le développement que vous attendez.</p>
+      </div>
+    </section>
+
+    <section id="pricing" class="pricing">
+      <h2>Offre bêta early-adopter</h2>
+      <p class="pricing-sub">Réservez votre place aujourd'hui. Vous validez votre intention de rejoindre la bêta payante.</p>
+
+      <div class="plans">
+        <div class="plan">
+          <div class="plan-name">Mensuel</div>
+          <div class="plan-price"><span class="amount">19€</span><span class="per">/mois</span></div>
+          <div class="plan-note"><s>39€</s> tarif public — bloqué à 19€ pour les early-adopters</div>
+          <ul class="plan-list">
+            <li>Accès complet à la bêta</li>
+            <li>Tarif à vie garanti</li>
+            <li>Support prioritaire</li>
+            <li>Annulable à tout moment</li>
+          </ul>
+          <button class="btn btn-primary btn-block js-checkout" data-plan="beta_monthly">
+            Rejoindre la bêta payante
+          </button>
+        </div>
+
+        <div class="plan plan-featured">
+          <div class="ribbon">Meilleure valeur</div>
+          <div class="plan-name">Annuel</div>
+          <div class="plan-price"><span class="amount">180€</span><span class="per">/an</span></div>
+          <div class="plan-note">Soit 15€/mois — 2 mois offerts</div>
+          <ul class="plan-list">
+            <li>Tout le plan mensuel</li>
+            <li>Onboarding personnalisé</li>
+            <li>Badge fondateur</li>
+            <li>Accès aux versions expérimentales</li>
+          </ul>
+          <button class="btn btn-primary btn-block js-checkout" data-plan="beta_annual">
+            Pré-commander l'accès annuel
+          </button>
+        </div>
+      </div>
+
+      <p class="pricing-foot">
+        En cliquant, vous êtes redirigé vers le paiement sécurisé (dépôt remboursable).
+        Aucun montant n'est prélevé tant que la bêta n'est pas confirmée.
+      </p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>© <%= new Date().getFullYear() %> EarlyLab — Une bêta payante pour construire mieux, ensemble.</p>
+  </footer>
+
+  <script src="/js/checkout.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finaliser votre accès bêta</title>
+  <link rel="stylesheet" href="/css/theme.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="brand">◆ EarlyLab</div>
+    <a class="nav-cta" href="/">Retour</a>
+  </header>
+
+  <main class="checkout-wrap">
+    <section class="checkout-card">
+      <span class="badge">Étape finale</span>
+      <h1>Réservez votre place dans la bêta payante</h1>
+      <p class="lede">
+        Plan sélectionné :
+        <strong><%= plan === "beta_annual" ? "Annuel — 180€/an" : "Mensuel — 19€/mois" %></strong>
+      </p>
+      <p class="checkout-note">
+        Laissez votre email : nous vous envoyons le lien de paiement sécurisé (Stripe)
+        et confirmons votre tarif early-adopter. Aucun prélèvement immédiat.
+      </p>
+
+      <form id="preorderForm" class="preorder-form">
+        <input type="hidden" name="plan" value="<%= plan %>" />
+        <input type="email" name="email" placeholder="vous@email.com" required />
+        <button type="submit" class="btn btn-primary btn-block">Confirmer ma pré-commande</button>
+      </form>
+      <p id="preorderMsg" class="preorder-msg" hidden></p>
+
+      <p class="pricing-foot">Dépôt remboursable · Sans engagement · Support prioritaire</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>© <%= new Date().getFullYear() %> EarlyLab</p>
+  </footer>
+
+  <script>
+    document.getElementById("preorderForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const email = form.email.value;
+      const plan = form.plan.value;
+      let visitor = null;
+      try { visitor = localStorage.getItem("_pv"); } catch (_) {}
+      const msg = document.getElementById("preorderMsg");
+      try {
+        await fetch("/api/checkout-intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan, email, visitor }),
+        });
+        form.hidden = true;
+        msg.hidden = false;
+        msg.textContent = "Merci ! Votre place est réservée. Nous vous envoyons le lien de paiement sous peu.";
+      } catch (_) {
+        msg.hidden = false;
+        msg.textContent = "Une erreur est survenue. Réessayez.";
+      }
+    });
+  </script>
+</body>
+</html>
