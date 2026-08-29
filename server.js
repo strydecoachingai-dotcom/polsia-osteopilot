@@ -47,6 +47,18 @@ async function ensureTables() {
       referrer TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS demo_consultations (
+      id SERIAL PRIMARY KEY,
+      patient_id TEXT NOT NULL,
+      patient_name TEXT NOT NULL,
+      motif TEXT,
+      anamnese TEXT,
+      tests TEXT,
+      traitement TEXT,
+      conseils TEXT,
+      cr_text TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
   await db.query(`
     ALTER TABLE pre_orders ADD COLUMN IF NOT EXISTS utm_source TEXT;
@@ -199,4 +211,90 @@ app.get("/api/pre-orders", async (_req, res) => {
   } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
-app.listen(PORT, () => console.log(`[server] :${PORT}  db=${!!db} stripe=${!!stripe} resend=${!!resend}`));
+// ── DEMO — Scribe IA testable ─────────────────────────────────────────────────
+// IMPORTANT: Demo data only. No real patient data. Not a medical device.
+
+app.get("/demo", (_req, res) => res.render("demo"));
+
+// Claude API call — generates compte rendu ostéopathique from clinical notes.
+app.post("/demo/generate", async (req, res) => {
+  const { patient, motif, anamnese, tests, traitement, conseils } = req.body || {};
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(503).json({ ok: false, error: "ANTHROPIC_API_KEY not configured" });
+
+  const prompt = `Tu es un assistant pour ostéopathes. Tu génères des comptes rendus de consultation structurés et professionnels à partir des notes cliniques d'un praticien.
+
+DONNÉES DE CONSULTATION (fictives — usage démo uniquement):
+- Patient : ${patient?.name || "Patient fictif"} (${patient?.sex || ""}, né(e) le ${patient?.birthDate || ""})
+- Motif principal : ${motif || "(non renseigné)"}
+- Anamnèse : ${anamnese || "(non renseignée)"}
+- Tests ostéopathiques : ${tests || "(non renseignés)"}
+- Traitement réalisé : ${traitement || "(non renseigné)"}
+- Conseils & suivi : ${conseils || "(non renseignés)"}
+
+Génère un compte rendu de consultation structuré, professionnel et concis (200-350 mots). Utilise le vocabulaire ostéopathique approprié. Structure : Date · Motif · Anamnèse · Examen ostéopathique · Traitement · Conseils · Prochain rendez-vous (si pertinent).
+
+IMPORTANT : Ce compte rendu est généré pour une application de démonstration. L'ostéopathe DOIT le valider, le compléter et l'adapter avant tout usage clinique réel. Ne fais aucun diagnostic médical.`;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 800,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.text();
+      return res.status(500).json({ ok: false, error: `Claude API ${resp.status}: ${err.slice(0, 200)}` });
+    }
+    const data = await resp.json();
+    const cr = data.content?.[0]?.text || "";
+    console.log(`[Demo] CR generated for ${patient?.name} (${cr.length} chars)`);
+    return res.json({ ok: true, cr });
+  } catch (e) {
+    console.error("[Demo] Claude error:", String(e));
+    return res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// Save consultation to Neon DB.
+app.post("/demo/save", async (req, res) => {
+  const { patient, motif, anamnese, tests, traitement, conseils, cr } = req.body || {};
+  try {
+    if (db) {
+      const r = await db.query(
+        "INSERT INTO demo_consultations (patient_id, patient_name, motif, anamnese, tests, traitement, conseils, cr_text) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
+        [patient?.id || "p_unknown", patient?.name || "Inconnu", motif || null, anamnese || null, tests || null, traitement || null, conseils || null, cr || null]
+      );
+      console.log(`[Demo] Consultation saved id=${r.rows[0]?.id} patient=${patient?.name}`);
+      return res.json({ ok: true, id: r.rows[0]?.id });
+    }
+    return res.json({ ok: true, id: "demo_no_db" });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// Get consultation history for a demo patient.
+app.get("/demo/consultations", async (req, res) => {
+  const patientId = req.query.patient_id || "p1";
+  try {
+    if (!db) return res.json({ rows: [] });
+    const r = await db.query(
+      "SELECT id, motif, cr_text, created_at FROM demo_consultations WHERE patient_id=$1 ORDER BY created_at DESC LIMIT 20",
+      [patientId]
+    );
+    return res.json({ rows: r.rows });
+  } catch (e) {
+    return res.status(500).json({ error: String(e), rows: [] });
+  }
+});
+
+app.listen(PORT, () => console.log(`[server] :${PORT}  db=${!!db} stripe=${!!stripe} resend=${!!resend} demo=true`));

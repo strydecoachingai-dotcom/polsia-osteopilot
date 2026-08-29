@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OstéoPilot — Démo Scribe IA</title>
+  <style>
+    :root { --blue:#2563eb; --green:#16a34a; --gray:#64748b; --light:#f8fafc; --border:#e2e8f0; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family: system-ui, sans-serif; background:#f1f5f9; color:#1e293b; min-height:100vh; }
+    .banner { background:#fef3c7; border-bottom:2px solid #fbbf24; padding:10px 20px; text-align:center; font-size:13px; font-weight:600; color:#92400e; }
+    .header { background:#fff; border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; gap:12px; }
+    .logo { font-size:20px; font-weight:700; color:var(--blue); }
+    .badge { background:#dbeafe; color:var(--blue); font-size:11px; font-weight:600; padding:2px 8px; border-radius:9px; text-transform:uppercase; letter-spacing:.5px; }
+    .container { max-width:900px; margin:0 auto; padding:24px 16px; }
+    .grid { display:grid; grid-template-columns:240px 1fr; gap:20px; }
+    @media(max-width:640px) { .grid { grid-template-columns:1fr; } }
+    .card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; }
+    .card h3 { font-size:14px; font-weight:600; color:var(--gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:14px; }
+    .patient-btn { width:100%; text-align:left; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; cursor:pointer; margin-bottom:8px; font-size:14px; transition:.15s; }
+    .patient-btn:hover,.patient-btn.active { background:#eff6ff; border-color:var(--blue); color:var(--blue); }
+    .form-group { margin-bottom:16px; }
+    label { display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px; }
+    input,textarea,select { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; transition:.15s; }
+    input:focus,textarea:focus,select:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 3px #dbeafe; }
+    textarea { resize:vertical; min-height:90px; }
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; transition:.15s; }
+    .btn-primary { background:var(--blue); color:#fff; }
+    .btn-primary:hover { background:#1d4ed8; }
+    .btn-primary:disabled { background:#93c5fd; cursor:wait; }
+    .btn-outline { background:#fff; border:1px solid var(--border); color:#374151; }
+    .btn-outline:hover { border-color:var(--blue); color:var(--blue); }
+    .btn-green { background:var(--green); color:#fff; }
+    .btn-green:hover { background:#15803d; }
+    .section-title { font-size:16px; font-weight:700; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+    .result-box { background:var(--light); border:1px solid var(--border); border-radius:10px; padding:16px; white-space:pre-wrap; font-size:14px; line-height:1.7; min-height:120px; }
+    .result-box.editable { border:1px solid var(--blue); background:#fff; }
+    .spinner { width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin .6s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .history-item { padding:12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; cursor:pointer; transition:.15s; }
+    .history-item:hover { border-color:var(--blue); background:#f0f9ff; }
+    .history-item .date { font-size:12px; color:var(--gray); }
+    .history-item .motif { font-size:14px; font-weight:600; margin-top:2px; }
+    .tabs { display:flex; gap:4px; margin-bottom:20px; }
+    .tab { padding:8px 16px; border-radius:8px; font-size:14px; font-weight:500; cursor:pointer; background:#fff; border:1px solid var(--border); }
+    .tab.active { background:#eff6ff; border-color:var(--blue); color:var(--blue); font-weight:700; }
+    .success-msg { background:#f0fdf4; border:1px solid #86efac; color:#166534; padding:10px 14px; border-radius:8px; font-size:14px; margin-top:12px; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; }
+    .tag-fictif { background:#fef3c7; color:#92400e; }
+  </style>
+</head>
+<body>
+
+<div class="banner">
+  ⚠️ APPLICATION DE DÉMONSTRATION — DONNÉES FICTIVES UNIQUEMENT — NE PAS UTILISER EN CABINET — NON DISPOSITIF MÉDICAL
+</div>
+
+<div class="header">
+  <div class="logo">◆ OstéoPilot</div>
+  <div class="badge">Démo Scribe IA</div>
+  <div style="margin-left:auto;font-size:13px;color:var(--gray)">Test & validation fondateur</div>
+</div>
+
+<div class="container">
+  <div class="grid">
+
+    <!-- Sidebar : patients fictifs -->
+    <div>
+      <div class="card">
+        <h3>Patients fictifs</h3>
+        <button class="patient-btn active" onclick="selectPatient(this,'p1','M. TEST Dupont','1980-03-15','Homme','Lombalgie chronique')" data-id="p1">
+          <div style="font-weight:600">M. TEST Dupont</div>
+          <div style="font-size:12px;color:var(--gray)">46 ans · Lombalgie</div>
+        </button>
+        <button class="patient-btn" onclick="selectPatient(this,'p2','Mme FICTIF Martin','1975-07-22','Femme','Cervicalgie post-traumatique')" data-id="p2">
+          <div style="font-weight:600">Mme FICTIF Martin</div>
+          <div style="font-size:12px;color:var(--gray)">51 ans · Cervicalgie</div>
+        </button>
+        <button class="patient-btn" onclick="selectPatient(this,'p3','M. DEMO Lefèvre','2001-11-08','Homme','Entorse cheville')" data-id="p3">
+          <div style="font-weight:600">M. DEMO Lefèvre</div>
+          <div style="font-size:12px;color:var(--gray)">25 ans · Entorse</div>
+        </button>
+        <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px;font-size:12px;color:var(--gray)">
+          <span class="tag tag-fictif">⚠ Données fictives</span><br>
+          <span style="margin-top:6px;display:block">Ces patients n'existent pas. Usage de démonstration uniquement.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zone principale -->
+    <div>
+      <div class="tabs">
+        <div class="tab active" onclick="showTab('consultation',this)">Nouvelle consultation</div>
+        <div class="tab" onclick="showTab('historique',this)">Historique</div>
+      </div>
+
+      <!-- Consultation -->
+      <div id="tab-consultation">
+        <div class="card">
+          <div class="section-title">Consultation — <span id="patient-name">M. TEST Dupont</span> <span class="tag tag-fictif">fictif</span></div>
+
+          <div class="form-group">
+            <label>Motif de consultation</label>
+            <input type="text" id="motif" placeholder="Ex: Lombalgie chronique, recrudescence depuis 2 semaines" />
+          </div>
+
+          <div class="form-group">
+            <label>Anamnèse</label>
+            <textarea id="anamnese" placeholder="Ex: Patient de 46 ans, technicien informatique, sédentarité. Douleurs lombaires apparues il y a 3 ans après déménagement. Légère amélioration après la 1ère consultation il y a 6 mois..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Tests ostéopathiques réalisés</label>
+            <textarea id="tests" placeholder="Ex: Test de flexion debout +dr. Restriction L4-L5 côté droit. Tension du psoas dr. Test de March négatif. Mobilité thoracique réduite en rotation droite..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Traitement réalisé</label>
+            <textarea id="traitement" placeholder="Ex: Techniques HVBA L4-L5. Techniques myofasciales psoas dr et gauche. Traitement viscéral côlon droit. Conseils posturaux..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Conseils & suivi</label>
+            <textarea id="conseils" placeholder="Ex: Exercices d'étirement lombaires 2x/jour. Marche 30 min/jour. Contrôle dans 6 semaines..." style="min-height:70px"></textarea>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">
+            <button class="btn btn-primary" id="btn-generate" onclick="generateCR()">
+              ✨ Générer le compte rendu IA
+            </button>
+            <button class="btn btn-outline" onclick="clearForm()">Effacer</button>
+          </div>
+        </div>
+
+        <!-- Résultat IA -->
+        <div id="result-section" style="display:none;margin-top:16px">
+          <div class="card">
+            <div class="section-title">Compte rendu généré par IA <span class="tag tag-fictif">à valider</span></div>
+            <div class="result-box editable" id="result-text" contenteditable="true"></div>
+            <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+              <button class="btn btn-green" onclick="saveConsultation()">💾 Valider et sauvegarder</button>
+              <button class="btn btn-outline" onclick="regenerate()">↺ Régénérer</button>
+            </div>
+            <div id="save-msg" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historique -->
+      <div id="tab-historique" style="display:none">
+        <div class="card">
+          <div class="section-title">Historique — <span id="hist-patient-name">M. TEST Dupont</span></div>
+          <div id="historique-list"><div style="color:var(--gray);font-size:14px">Chargement…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentPatient = { id: 'p1', name: 'M. TEST Dupont', birthDate: '1980-03-15', sex: 'Homme', motifPrincipal: 'Lombalgie chronique' };
+let lastCr = '';
+
+function selectPatient(btn, id, name, birthDate, sex, motifPrincipal) {
+  document.querySelectorAll('.patient-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPatient = { id, name, birthDate, sex, motifPrincipal };
+  document.getElementById('patient-name').textContent = name;
+  document.getElementById('hist-patient-name').textContent = name;
+  document.getElementById('result-section').style.display = 'none';
+  if (document.getElementById('tab-historique').style.display !== 'none') loadHistorique();
+}
+
+function showTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-consultation').style.display = tab === 'consultation' ? '' : 'none';
+  document.getElementById('tab-historique').style.display = tab === 'historique' ? '' : 'none';
+  if (tab === 'historique') loadHistorique();
+}
+
+async function generateCR() {
+  const motif = document.getElementById('motif').value.trim();
+  const anamnese = document.getElementById('anamnese').value.trim();
+  const tests = document.getElementById('tests').value.trim();
+  const traitement = document.getElementById('traitement').value.trim();
+  const conseils = document.getElementById('conseils').value.trim();
+
+  if (!motif && !anamnese && !tests) {
+    alert('Remplissez au moins le motif, l\'anamnèse ou les tests.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-generate');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Génération en cours…';
+
+  try {
+    const res = await fetch('/demo/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient: currentPatient, motif, anamnese, tests, traitement, conseils }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Erreur serveur');
+    lastCr = data.cr;
+    document.getElementById('result-text').textContent = data.cr;
+    document.getElementById('result-section').style.display = '';
+    document.getElementById('save-msg').style.display = 'none';
+  } catch (e) {
+    alert('Erreur: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✨ Générer le compte rendu IA';
+  }
+}
+
+function regenerate() { generateCR(); }
+
+function clearForm() {
+  ['motif','anamnese','tests','traitement','conseils'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('result-section').style.display = 'none';
+}
+
+async function saveConsultation() {
+  const cr = document.getElementById('result-text').textContent;
+  const saveBtn = document.querySelector('.btn-green');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '💾 Sauvegarde…';
+  try {
+    const res = await fetch('/demo/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        patient: currentPatient,
+        motif: document.getElementById('motif').value,
+        anamnese: document.getElementById('anamnese').value,
+        tests: document.getElementById('tests').value,
+        traitement: document.getElementById('traitement').value,
+        conseils: document.getElementById('conseils').value,
+        cr,
+      }),
+    });
+    const data = await res.json();
+    const msg = document.getElementById('save-msg');
+    msg.style.display = '';
+    msg.className = 'success-msg';
+    msg.textContent = '✅ Consultation sauvegardée (ID: ' + data.id + ')';
+  } catch (e) {
+    alert('Erreur sauvegarde: ' + e.message);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = '💾 Valider et sauvegarder';
+  }
+}
+
+async function loadHistorique() {
+  const list = document.getElementById('historique-list');
+  list.innerHTML = '<div style="color:var(--gray);font-size:14px">Chargement…</div>';
+  try {
+    const res = await fetch('/demo/consultations?patient_id=' + currentPatient.id);
+    const data = await res.json();
+    if (!data.rows || data.rows.length === 0) {
+      list.innerHTML = '<div style="color:var(--gray);font-size:14px">Aucune consultation enregistrée pour ce patient fictif.</div>';
+      return;
+    }
+    list.innerHTML = data.rows.map(r => `
+      <div class="history-item" onclick="showCr(this,'${r.cr_text?.replace(/'/g,"&#39;").slice(0,500)}')">
+        <div class="date">${new Date(r.created_at).toLocaleDateString('fr-FR', {weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+        <div class="motif">${r.motif || '(sans motif)'}</div>
+        <div style="font-size:12px;color:var(--gray);margin-top:4px">${(r.cr_text||'').slice(0,80)}…</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div style="color:red">Erreur: ' + e.message + '</div>';
+  }
+}
+
+function showCr(el, cr) {
+  // Show previous CR in a modal-ish way.
+  alert('Compte rendu:\n\n' + cr);
+}
+</script>
+</body>
+</html>
