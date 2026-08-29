@@ -217,52 +217,90 @@ app.get("/api/pre-orders", async (_req, res) => {
 app.get("/demo", (_req, res) => res.render("demo"));
 
 // Claude API call — generates compte rendu ostéopathique from clinical notes.
+// Falls back to structured template if Claude credits are insufficient.
 app.post("/demo/generate", async (req, res) => {
   const { patient, motif, anamnese, tests, traitement, conseils } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(503).json({ ok: false, error: "ANTHROPIC_API_KEY not configured" });
+  const today = new Date().toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const prompt = `Tu es un assistant pour ostéopathes. Tu génères des comptes rendus de consultation structurés et professionnels à partir des notes cliniques d'un praticien.
+  // Template fallback — always available, good for QA/demo.
+  function templateCr() {
+    return `COMPTE RENDU DE CONSULTATION OSTÉOPATHIQUE
+[DONNÉES DE TEST — USAGE DÉMO UNIQUEMENT]
 
-DONNÉES DE CONSULTATION (fictives — usage démo uniquement):
-- Patient : ${patient?.name || "Patient fictif"} (${patient?.sex || ""}, né(e) le ${patient?.birthDate || ""})
-- Motif principal : ${motif || "(non renseigné)"}
-- Anamnèse : ${anamnese || "(non renseignée)"}
-- Tests ostéopathiques : ${tests || "(non renseignés)"}
-- Traitement réalisé : ${traitement || "(non renseigné)"}
-- Conseils & suivi : ${conseils || "(non renseignés)"}
+Date : ${today}
+Patient : ${patient?.name || "Patient fictif"} (né(e) le ${patient?.birthDate || "N/A"})
 
-Génère un compte rendu de consultation structuré, professionnel et concis (200-350 mots). Utilise le vocabulaire ostéopathique approprié. Structure : Date · Motif · Anamnèse · Examen ostéopathique · Traitement · Conseils · Prochain rendez-vous (si pertinent).
+MOTIF DE CONSULTATION
+${motif || "(non renseigné)"}
 
-IMPORTANT : Ce compte rendu est généré pour une application de démonstration. L'ostéopathe DOIT le valider, le compléter et l'adapter avant tout usage clinique réel. Ne fais aucun diagnostic médical.`;
+ANAMNÈSE
+${anamnese || "(non renseignée)"}
 
-  try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 800,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    if (!resp.ok) {
-      const err = await resp.text();
-      return res.status(500).json({ ok: false, error: `Claude API ${resp.status}: ${err.slice(0, 200)}` });
-    }
-    const data = await resp.json();
-    const cr = data.content?.[0]?.text || "";
-    console.log(`[Demo] CR generated for ${patient?.name} (${cr.length} chars)`);
-    return res.json({ ok: true, cr });
-  } catch (e) {
-    console.error("[Demo] Claude error:", String(e));
-    return res.status(500).json({ ok: false, error: String(e) });
+EXAMEN OSTÉOPATHIQUE
+${tests || "(tests non renseignés)"}
+
+TRAITEMENT RÉALISÉ
+${traitement || "(traitement non renseigné)"}
+
+CONSEILS ET SUIVI
+${conseils || "(conseils non renseignés)"}
+
+---
+⚠️ Compte rendu généré par modèle structuré (crédits IA insuffisants).
+À valider et compléter par le praticien avant tout usage.`;
   }
-});
+
+  // Try Claude first.
+  if (apiKey) {
+    try {
+      const prompt = `Tu es un assistant pour ostéopathes. Tu génères des comptes rendus de consultation structurés et professionnels à partir des notes cliniques.
+
+DONNÉES (fictives — usage démo):
+- Patient : ${patient?.name || "Patient fictif"} (${patient?.sex || ""}, né(e) le ${patient?.birthDate || ""})
+- Motif : ${motif || ""}
+- Anamnèse : ${anamnese || ""}
+- Tests ostéopathiques : ${tests || ""}
+- Traitement : ${traitement || ""}
+- Conseils : ${conseils || ""}
+
+Génère un compte rendu de consultation structuré (200-300 mots). Structure : Date · Motif · Anamnèse · Examen ostéopathique · Traitement · Conseils.
+IMPORTANT: ces données sont fictives. Pas de diagnostic médical.`;
+
+      const claudeResp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-3-haiku-20240307",
+          max_tokens: 600,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+
+      if (claudeResp.ok) {
+        const data = await claudeResp.json();
+        const cr = data.content?.[0]?.text || "";
+        if (cr.length > 50) {
+          console.log(`[Demo] AI CR generated for ${patient?.name} (${cr.length} chars)`);
+          return res.json({ ok: true, cr, source: "claude" });
+        }
+      } else {
+        const errText = await claudeResp.text();
+        console.warn(`[Demo] Claude ${claudeResp.status}: ${errText.slice(0, 100)} — falling back to template`);
+      }
+    } catch (e) {
+      console.warn(`[Demo] Claude error, using template: ${String(e).slice(0, 100)}`);
+    }
+  }
+
+  // Template fallback.
+  const cr = templateCr();
+  console.log(`[Demo] Template CR generated for ${patient?.name}`);
+  return res.json({ ok: true, cr, source: "template", notice: "Compte rendu structuré (crédits IA insuffisants). Ajoutez des crédits Anthropic pour la génération IA." });
 
 // Save consultation to Neon DB.
 app.post("/demo/save", async (req, res) => {
