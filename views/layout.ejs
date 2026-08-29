@@ -57,7 +57,10 @@
             <li>Support prioritaire</li>
             <li>Annulable à tout moment</li>
           </ul>
-          <button class="btn btn-primary btn-block js-checkout" data-plan="beta_monthly">
+          <div class="email-capture">
+            <input type="email" class="input-email" id="email-monthly" placeholder="Votre email pro…" required autocomplete="email" />
+          </div>
+          <button class="btn btn-primary btn-block js-checkout" data-plan="beta_monthly" data-email-target="email-monthly">
             Rejoindre la bêta payante
           </button>
         </div>
@@ -73,7 +76,10 @@
             <li>Badge fondateur</li>
             <li>Accès aux versions expérimentales</li>
           </ul>
-          <button class="btn btn-primary btn-block js-checkout" data-plan="beta_annual">
+          <div class="email-capture">
+            <input type="email" class="input-email" id="email-annual" placeholder="Votre email pro…" required autocomplete="email" />
+          </div>
+          <button class="btn btn-primary btn-block js-checkout" data-plan="beta_annual" data-email-target="email-annual">
             Pré-commander l'accès annuel
           </button>
         </div>
