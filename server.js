@@ -137,7 +137,8 @@ app.post("/api/pre-order", async (req, res) => {
       emailId = r.data?.id || null;
       emailSent = !!emailId;
       console.log(`[Resend] sent id=${emailId} to=${email}`);
-      if (db && dbId) {
+      // Only persist to DB if email was actually sent.
+      if (emailSent && db && dbId) {
         await db.query("UPDATE pre_orders SET email_sent=TRUE, email_id=$1 WHERE id=$2", [emailId, dbId]);
       }
     }
@@ -161,4 +162,5 @@ app.get("/api/pre-orders", async (_req, res) => {
 app.listen(PORT, () => {
   console.log(`[server] :${PORT}  db=${!!db} stripe=${!!stripe} resend=${!!resend}`);
 });
+
 
