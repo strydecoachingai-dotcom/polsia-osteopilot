@@ -141,7 +141,7 @@ app.post("/api/pre-order", async (req, res) => {
         await db.query("UPDATE pre_orders SET email_sent=TRUE, email_id=$1 WHERE id=$2", [emailId, dbId]);
       }
     }
-  } catch (e) { console.error("[Resend]", e.message); }
+  } catch (e) { console.error("[Resend] error:", e.message, e.statusCode || ""); }
 
   return res.json({ ok: true, stripeUrl, emailSent, emailId, dbId, plan });
 });
@@ -161,3 +161,4 @@ app.get("/api/pre-orders", async (_req, res) => {
 app.listen(PORT, () => {
   console.log(`[server] :${PORT}  db=${!!db} stripe=${!!stripe} resend=${!!resend}`);
 });
+
