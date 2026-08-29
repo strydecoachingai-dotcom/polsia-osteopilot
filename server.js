@@ -301,6 +301,7 @@ IMPORTANT: ces données sont fictives. Pas de diagnostic médical.`;
   const cr = templateCr();
   console.log(`[Demo] Template CR generated for ${patient?.name}`);
   return res.json({ ok: true, cr, source: "template", notice: "Compte rendu structuré (crédits IA insuffisants). Ajoutez des crédits Anthropic pour la génération IA." });
+});
 
 // Save consultation to Neon DB.
 app.post("/demo/save", async (req, res) => {
